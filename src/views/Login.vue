@@ -9,23 +9,23 @@
     <div class="container" :class="{'right-panel-active':registerSide}" id="container">
         <div class="form-container sign-up-container">
             
-            <form action="#">
+            <form @submit.prevent="register">
                 <h1>Créer un compte</h1>
                 <div class="error">{{errorMessage}}</div>
-                <input type="text" placeholder="Prénom" />
-                <input type="text" placeholder="Nom" />
-                <input type="email" placeholder="Email" />
-                <input type="password" placeholder="Mot de passe" />
-                <input type="password" placeholder="Confirmer le mot de passe" />
+                <input type="text" placeholder="Prénom" v-model="first_name" required/>
+                <input type="text" placeholder="Nom" v-model="last_name" required/>
+                <input type="email" placeholder="Email" v-model="email" required/>
+                <input type="password" placeholder="Mot de passe" v-model="password" required/>
+                <input type="password" placeholder="Confirmer le mot de passe" v-model="verifPassword" required/>
                 <button class="signUp">S'enregistrer</button>
             </form>
         </div>
         <div class="form-container sign-in-container">
-            <form action="#">
+            <form @submit.prevent="login">
                 <h1>Connexion</h1>
                 <div class="error">{{errorMessage}}</div>
-                <input type="email" placeholder="Email" />
-                <input type="password" placeholder="Mot de passe" />
+                <input type="email" placeholder="Email" v-model="email" required/>
+                <input type="password" placeholder="Mot de passe" v-model="password" required/>
                 <a href="#">Mot de passe oublié ?</a>
                 <button class="signIn">Connexion</button>
             </form>
@@ -53,10 +53,14 @@ export default {
     name: 'Login',
     data() {
         return {
-            errorMessage:"Mauvais mot de passe",
+            errorMessage:"",
             registerSide:false,
+
             email:'',
-            password:''
+            password:'',
+            verifPassword:'',
+            first_name:'',
+            last_name:''
         }
     },
     methods:{
@@ -64,14 +68,62 @@ export default {
             this.registerSide = !this.registerSide;
             this.errorMessage = "";
         },
-        async login(){
-           const response = await axios.post('login', {
-               email: this.email,
-               password: this.password
-           });
-            localStorage.setItem('token',response.data.token);
-            this.$router.push('/');
+        // async login(){
+        //    const response = await axios.post('login', {
+        //        email: this.email,
+        //        password: this.password
+        //    });
+        //     localStorage.setItem('token',response.data.token);
+        //     this.$router.push('/');
+        // }
+        login:async function(){
+            var error="";
+            await axios.post('api/users/login',{
+                email: this.email,
+                password: this.password
+            }).then((res)=>{
+                console.log(res.data);
+                if (res.data.token && res.data.token !=null && res.data.token !="") {
+                    localStorage.setItem('token',res.data.token);
+                }else if(res.data.error && res.data.error !=null && res.data.error !=""){
+                    error = res.data.error;
+                }else{
+                    error = "Une erreur inconnue est survenue"
+                }
+            }).catch((err)=>{
+                console.log(err);
+            })
+            this.errorMessage = error;
+        },
+        register:async function(){
+            if (this.password === this.verifPassword) {
+                var error="";
+                var registerSide = true;
+                await axios.post('api/users/register',{
+                    first_name: this.first_name,
+                    last_name: this.last_name,
+                    email: this.email,
+                    password: this.password
+                }).then((res)=>{
+                    console.log(res.data);
+                    if (res.data.userId && res.data.userId !=null && res.data.userId !="") {
+                        registerSide = false;
+                    }else if(res.data.error && res.data.error !=null && res.data.error !=""){
+                        error = res.data.error;
+                    }else{
+                        error = "Une erreur inconnue est survenue"
+                    }
+                }).catch((err)=>{
+                    console.log(err);
+                })
+            this.errorMessage = error;
+            this.registerSide = registerSide;
+            }else{
+                this.errorMessage = "Mots de passe differents"
+            }
+            
         }
+
     }
 }
 </script>
